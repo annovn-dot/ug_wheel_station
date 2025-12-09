@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wheel Tuning</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div id="overlay" style="display:none;">
+    <div id="panel">
+      <div id="panel-header">
+        <div class="title-group">
+          <h1>Wheel Tuning</h1>
+          <p class="subtitle">Adjust stance, camber, width & height in real time.</p>
+        </div>
+      </div>
+
+      <div id="tabs">
+        <button data-tab="fitment" class="tab active">Fitment</button>
+        <button data-tab="width" class="tab">Width</button>
+        <button data-tab="camber" class="tab">Camber</button>
+        <button data-tab="suspension" class="tab">Suspension</button>
+      </div>
+
+      <div id="content">
+        <div class="tab-content" data-tab="fitment">
+          <h2>Wheel Fitment</h2>
+          <p class="section-hint">Push wheels out or tuck them in per corner.</p>
+
+          <div class="slider-row">
+            <label>Front Left</label>
+            <input type="range" id="offset-fl" step="0.01">
+            <span class="value" id="offset-fl-val">0.00</span>
+          </div>
+          <div class="slider-row">
+            <label>Front Right</label>
+            <input type="range" id="offset-fr" step="0.01">
+            <span class="value" id="offset-fr-val">0.00</span>
+          </div>
+          <div class="slider-row">
+            <label>Rear Left</label>
+            <input type="range" id="offset-rl" step="0.01">
+            <span class="value" id="offset-rl-val">0.00</span>
+          </div>
+          <div class="slider-row">
+            <label>Rear Right</label>
+            <input type="range" id="offset-rr" step="0.01">
+            <span class="value" id="offset-rr-val">0.00</span>
+          </div>
+        </div>
+
+        <div class="tab-content" data-tab="width" style="display:none;">
+          <h2>Wheel Width</h2>
+          <p class="section-hint">Fine-tune overall wheel width for a wider stance.</p>
+
+          <div class="slider-row">
+            <label>Width</label>
+            <input type="range" id="width" step="0.01">
+            <span class="value" id="width-val">0.00</span>
+          </div>
+        </div>
+
+        <div class="tab-content" data-tab="camber" style="display:none;">
+          <h2>Wheel Camber</h2>
+          <p class="section-hint">Negative camber leans wheels inwards at the top.</p>
+
+          <div class="slider-row">
+            <label>Front Left</label>
+            <input type="range" id="camber-fl" step="0.1">
+            <span class="value" id="camber-fl-val">0.0°</span>
+          </div>
+          <div class="slider-row">
+            <label>Front Right</label>
+            <input type="range" id="camber-fr" step="0.1">
+            <span class="value" id="camber-fr-val">0.0°</span>
+          </div>
+          <div class="slider-row">
+            <label>Rear Left</label>
+            <input type="range" id="camber-rl" step="0.1">
+            <span class="value" id="camber-rl-val">0.0°</span>
+          </div>
+          <div class="slider-row">
+            <label>Rear Right</label>
+            <input type="range" id="camber-rr" step="0.1">
+            <span class="value" id="camber-rr-val">0.0°</span>
+          </div>
+        </div>
+
+        <div class="tab-content" data-tab="suspension" style="display:none;">
+          <h2>Suspension Height</h2>
+          <p class="section-hint">Lower or raise the car’s ride height.</p>
+
+          <div class="slider-row">
+            <label>Height</label>
+            <input type="range" id="suspension" step="0.01">
+            <span class="value" id="suspension-val">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="footer">
+        <div class="footer-left">
+          <button id="toggle-focus" type="button" class="ghost-btn">
+            Toggle Focus
+          </button>
+          <span id="focus-hint">Camera stuck? Type <b>/focus</b> or button</span>
+        </div>
+
+        <div id="buttons">
+          <button id="cancel" type="button" class="btn secondary">Cancel</button>
+          <button id="save" type="button" class="btn primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

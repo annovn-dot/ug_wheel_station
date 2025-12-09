@@ -1,0 +1,16 @@
+ESX add to data base
+ALTER TABLE `owned_vehicles` ADD COLUMN `wheels` LONGTEXT NULL;
+
+QB/QBOX add to data base
+ALTER TABLE `player_vehicles` ADD COLUMN `wheels` LONGTEXT NULL;
+
+exports for other scripts, e.g. radial menu
+-- condition check
+exports['ug_wheel_fitment']:IsInWheelZone()
+
+-- on select
+exports['ug_wheel_fitment']:OpenWheelMenu()
+
+-- export or event to trigger fitment from garage to apply to the car on spawn/vehicle retrieve
+exports['ug_wheel_tuning']:ApplyOnSpawn(src, netId, plate)
+TriggerServerEvent('ug_wheel_tuning:requestApplyOnSpawn', netId, plate)

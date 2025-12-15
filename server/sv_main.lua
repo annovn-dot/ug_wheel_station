@@ -1,11 +1,5 @@
--- sv_main.lua - ug_wheel_tuning / ug_wheel_station
-
 local framework     = Config.Framework
-local ActiveFitment = {} -- [plate] = { data = <table>, lastNetIds = { [netId] = true } }
-
----------------------------------------------------------------
--- SMALL HELPERS
----------------------------------------------------------------
+local ActiveFitment = {}
 
 local function trimPlate(plate)
     if not plate then return nil end
@@ -43,10 +37,6 @@ local function debugPrint(...)
     end
 end
 
----------------------------------------------------------------
--- ACCESS CHECK FOR ZONE
----------------------------------------------------------------
-
 lib.callback.register('ug_wheel_tuning:canUseZone', function(source, zoneId)
     local player = Framework.GetPlayer(source)
     if not player then
@@ -55,7 +45,6 @@ lib.callback.register('ug_wheel_tuning:canUseZone', function(source, zoneId)
 
     local cfg = getZoneConfig(zoneId)
     if not cfg then
-        -- no special restriction => public
         return true, nil
     end
 
@@ -87,10 +76,6 @@ lib.callback.register('ug_wheel_tuning:canUseZone', function(source, zoneId)
     return false, 'Invalid access mode.'
 end)
 
----------------------------------------------------------------
--- DB HELPERS (LOAD / SAVE)
----------------------------------------------------------------
-
 local function getVehicleTableInfo()
     return
         Config.VehicleTable[framework],
@@ -99,7 +84,6 @@ local function getVehicleTableInfo()
         Config.WheelsColumn
 end
 
--- returns decoded wheels table or nil
 local function loadWheelsFor(identifier, plate)
     if not identifier or not plate then return nil end
 
@@ -150,7 +134,6 @@ local function saveWheelsFor(identifier, plate, data)
     ), { payload, identifier, plate })
 end
 
--- update server pool + broadcast to clients
 local function updateActiveFitment(netId, plate, data)
     if not plate or not data then return end
 
@@ -163,14 +146,9 @@ local function updateActiveFitment(netId, plate, data)
     end
 
     if netId then
-        -- sync to everyone
         TriggerClientEvent('ug_wheel_tuning:applyOnSpawn', -1, netId, data)
     end
 end
-
----------------------------------------------------------------
--- CALLBACK: LOAD WHEEL DATA FOR UI
----------------------------------------------------------------
 
 lib.callback.register('ug_wheel_tuning:getWheels', function(source, plate)
     plate = trimPlate(plate)
@@ -182,10 +160,6 @@ lib.callback.register('ug_wheel_tuning:getWheels', function(source, plate)
 
     return loadWheelsFor(identifier, plate)
 end)
-
----------------------------------------------------------------
--- EVENT: SAVE WHEEL DATA FROM UI
----------------------------------------------------------------
 
 RegisterNetEvent('ug_wheel_tuning:saveWheels', function(plate, data)
     local src = source
@@ -199,22 +173,13 @@ RegisterNetEvent('ug_wheel_tuning:saveWheels', function(plate, data)
 
     saveWheelsFor(identifier, plate, data)
 
-    -- update server-side active pool (we don't know netId here)
     updateActiveFitment(nil, plate, data)
 end)
-
----------------------------------------------------------------
--- EVENT: CLIENT TELLS SERVER WHICH NETID HAS THIS FITMENT
----------------------------------------------------------------
 
 RegisterNetEvent('ug_wheel_tuning:updateActiveVehicle', function(netId, plate, data)
     if not netId or not plate or not data then return end
     updateActiveFitment(netId, plate, data)
 end)
-
----------------------------------------------------------------
--- EVENT: GARAGE CALLS THIS WHEN VEHICLE SPAWNS
----------------------------------------------------------------
 
 RegisterNetEvent('ug_wheel_tuning:requestApplyOnSpawn', function(netId, plate)
     local src = source
@@ -232,12 +197,6 @@ RegisterNetEvent('ug_wheel_tuning:requestApplyOnSpawn', function(netId, plate)
     updateActiveFitment(netId, plate, data)
 end)
 
----------------------------------------------------------------
--- EXPORT: DIRECT APPLYONSPAWN (FOR OTHER GARAGE SCRIPTS)
----------------------------------------------------------------
-
--- Usage from other resources:
---   exports['ug_wheel_station']:ApplyOnSpawn(source, netId, plate)
 exports('ApplyOnSpawn', function(source, netId, plate)
     if not source or not netId or not plate then return end
 
@@ -253,10 +212,6 @@ exports('ApplyOnSpawn', function(source, netId, plate)
     updateActiveFitment(netId, plate, data)
 end)
 
----------------------------------------------------------------
--- CALLBACK: LET CLIENTS FETCH ACTIVE POOL ON JOIN
----------------------------------------------------------------
-
 lib.callback.register('ug_wheel_tuning:getActivePool', function(_source)
     local copy = {}
     for plate, entry in pairs(ActiveFitment) do
@@ -264,3 +219,4 @@ lib.callback.register('ug_wheel_tuning:getActivePool', function(_source)
     end
     return copy
 end)
+

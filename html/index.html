@@ -18,6 +18,7 @@
 
       <div id="tabs">
         <button data-tab="fitment" class="tab active">Fitment</button>
+        <button data-tab="size" class="tab">Size</button>
         <button data-tab="width" class="tab">Width</button>
         <button data-tab="camber" class="tab">Camber</button>
         <button data-tab="suspension" class="tab">Suspension</button>
@@ -47,6 +48,17 @@
             <label>Rear Right</label>
             <input type="range" id="offset-rr" step="0.01">
             <span class="value" id="offset-rr-val">0.00</span>
+          </div>
+        </div>
+
+        <div class="tab-content" data-tab="size" style="display:none;">
+          <h2>Wheel Size</h2>
+          <p class="section-hint">Increase/decrease overall wheel size.</p>
+
+          <div class="slider-row">
+            <label>Size</label>
+            <input type="range" id="size" step="0.01">
+            <span class="value" id="size-val">0.00</span>
           </div>
         </div>
 

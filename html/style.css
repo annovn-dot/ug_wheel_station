@@ -259,7 +259,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.45), transparent);
+  background: transparent;
 }
 
 .footer-left {

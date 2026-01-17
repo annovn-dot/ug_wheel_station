@@ -174,6 +174,10 @@ RegisterNetEvent('ug_wheel_tuning:saveWheels', function(plate, data)
     saveWheelsFor(identifier, plate, data)
 
     updateActiveFitment(nil, plate, data)
+
+    if UG_WHEEL_LogSave then
+        UG_WHEEL_LogSave(src, plate, data)
+    end
 end)
 
 RegisterNetEvent('ug_wheel_tuning:updateActiveVehicle', function(netId, plate, data)

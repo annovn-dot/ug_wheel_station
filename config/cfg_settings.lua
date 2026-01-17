@@ -27,3 +27,15 @@ Config.PlateColumn        = { -- plate column
 }
 
 Config.WheelsColumn       = 'wheels' -- JSON column to store wheel data
+
+Config.DiscordLogs        = {
+    Enabled        = true,
+    Webhook        = "",
+
+    Username       = "ug_wheel_tuning",
+    Avatar         = "",
+
+    ColorSave      = 3447003, -- blue
+    IncludeRawJson = false, -- set true if you want JSON payload in message (can be long)
+}
+

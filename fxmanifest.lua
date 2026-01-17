@@ -20,6 +20,7 @@ client_scripts {
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
+    'server/sv_discord.lua',
     'server/sv_main.lua'
 }
 
@@ -33,3 +34,4 @@ files {
 dependencies {
     'ox_lib'
 }
+

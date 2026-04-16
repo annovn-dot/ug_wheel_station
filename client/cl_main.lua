@@ -9,6 +9,7 @@ local uiHasFocus             = false
 local performVehicleCheck    = true
 
 local vehiclesToCheckFitment = {}
+local stockWheelDataByPlate  = {}
 
 DecorRegister("ug_fit_applied", 2)
 
@@ -85,6 +86,11 @@ local function requestControl(ent, timeoutMs)
         NetworkRequestControlOfEntity(ent)
     end
     return NetworkHasControlOfEntity(ent)
+end
+
+local function trimPlate(plate)
+    if not plate then return nil end
+    return (tostring(plate):gsub("^%s*(.-)%s*$", "%1"))
 end
 
 local function showLeftHint()
@@ -191,6 +197,38 @@ local function BuildWheelDataFromVehicle(veh)
     end
 
     return out
+end
+
+local function cacheStockWheelData(veh, plate)
+    plate = trimPlate(plate or (veh and GetVehicleNumberPlateText(veh)))
+    if not plate or plate == "" or stockWheelDataByPlate[plate] then return end
+    if not veh or veh == 0 then return end
+    if DecorExistOn(veh, "ug_fit_applied") and DecorGetBool(veh, "ug_fit_applied") then return end
+
+    stockWheelDataByPlate[plate] = BuildWheelDataFromVehicle(veh)
+end
+
+local function clearFitmentDecorators(veh)
+    if not veh or veh == 0 or not DoesEntityExist(veh) then return end
+
+    local decorKeys = {
+        "ug_fit_applied",
+        "ug_fit_width",
+        "ug_fit_off_fl", "ug_fit_off_fr", "ug_fit_off_rl", "ug_fit_off_rr",
+        "ug_fit_cam_fl", "ug_fit_cam_fr", "ug_fit_cam_rl", "ug_fit_cam_rr",
+        "ug_fit_size",
+        "ug_fit_height",
+        "ug_fit_tire_fl", "ug_fit_tire_fr", "ug_fit_tire_rl", "ug_fit_tire_rr",
+        "ug_fit_rim_fl", "ug_fit_rim_fr", "ug_fit_rim_rl", "ug_fit_rim_rr",
+    }
+
+    for _, key in ipairs(decorKeys) do
+        pcall(function()
+            if DecorExistOn(veh, key) then
+                DecorRemove(veh, key)
+            end
+        end)
+    end
 end
 
 local function normalizeWheelPayload(payload, base, veh)
@@ -433,7 +471,7 @@ CreateThread(function()
     end
 end)
 
-local function OpenTuning()
+local function OpenTuning(ignoreZone)
     local ped = PlayerPedId()
     local veh = GetVehiclePedIsIn(ped, false)
 
@@ -442,19 +480,22 @@ local function OpenTuning()
         return
     end
 
-    if not inZone or not currentZoneId or not currentZoneCfg then
+    if not ignoreZone and (not inZone or not currentZoneId or not currentZoneCfg) then
         notify("You must be on a wheel tuning pad.")
         return
     end
 
-    local ok, reason = lib.callback.await('ug_wheel_tuning:canUseZone', false, currentZoneId)
-    if not ok then
-        notify(reason or "You are not allowed to use this station.")
-        return
+    if not ignoreZone then
+        local ok, reason = lib.callback.await('ug_wheel_tuning:canUseZone', false, currentZoneId)
+        if not ok then
+            notify(reason or "You are not allowed to use this station.")
+            return
+        end
     end
 
     vehEntity          = veh
     vehPlate           = GetVehicleNumberPlateText(vehEntity) or "UNKNOWN"
+    cacheStockWheelData(vehEntity, vehPlate)
 
     local data         = BuildWheelDataFromVehicle(vehEntity)
     originalWheelsJSON = json.encode(data or {})
@@ -475,6 +516,11 @@ RegisterCommand(openCmd, function()
     OpenTuning()
 end, false)
 
+RegisterNetEvent('ug_wheel_tuning:openAdminMenu', function()
+    if isMenuOpen then return end
+    OpenTuning(true)
+end)
+
 RegisterNUICallback('preview', function(payload, cb)
     cb({ ok = true })
     if not isMenuOpen then return end
@@ -485,6 +531,40 @@ RegisterNUICallback('preview', function(payload, cb)
     if not ok or not base then base = BuildWheelDataFromVehicle(vehEntity) end
 
     ApplyWheelsClientside(payload, vehEntity, base)
+end)
+
+RegisterNUICallback('reset', function(_, cb)
+    if not isMenuOpen then
+        cb({ ok = false, message = "Wheel menu is not open." })
+        return
+    end
+
+    local plate = trimPlate(vehPlate)
+    local netId = vehEntity and vehEntity ~= 0 and VehToNet(vehEntity) or nil
+    local ok, reason = lib.callback.await('ug_wheel_tuning:resetWheels', false, plate, netId)
+
+    if not ok then
+        cb({ ok = false, message = reason or "Failed to reset saved wheel tuning." })
+        return
+    end
+
+    local stock = plate and stockWheelDataByPlate[plate] or nil
+    if stock then
+        ApplyWheelsClientside(stock, vehEntity, stock)
+        clearFitmentDecorators(vehEntity)
+        originalWheelsJSON = json.encode(stock)
+        cb({ ok = true, wheels = stock, message = "Wheel tuning reset to stock and cleared from storage." })
+    else
+        clearFitmentDecorators(vehEntity)
+        originalWheelsJSON = json.encode(BuildWheelDataFromVehicle(vehEntity) or {})
+        cb({ ok = true, message = "Saved wheel tuning cleared, but this vehicle needs a respawn to fully return to stock because no untuned baseline was cached." })
+    end
+
+    if stock then
+        notify("Wheel tuning reset and removed from saved data.")
+    else
+        notify("Saved wheel tuning cleared. Respawn the vehicle to fully restore stock wheels.")
+    end
 end)
 
 RegisterNUICallback('apply', function(payload, cb)
@@ -508,6 +588,32 @@ RegisterNUICallback('apply', function(payload, cb)
     if not progressed then
         notify("Cancelled.")
         RevertOriginal()
+        CloseNUI()
+        return
+    end
+
+    if payload and payload.resetToStock == true then
+        local plate = trimPlate(vehPlate)
+        local netId = VehToNet(vehEntity)
+        local ok, reason = lib.callback.await('ug_wheel_tuning:resetWheels', false, plate, netId)
+
+        if not ok then
+            notify(reason or "Failed to reset saved wheel tuning.")
+            return
+        end
+
+        local stock = plate and stockWheelDataByPlate[plate] or nil
+        if stock then
+            ApplyWheelsClientside(stock, vehEntity, stock)
+            clearFitmentDecorators(vehEntity)
+            originalWheelsJSON = json.encode(stock)
+            notify("Wheel tuning reset and removed from saved data.")
+        else
+            clearFitmentDecorators(vehEntity)
+            originalWheelsJSON = json.encode(BuildWheelDataFromVehicle(vehEntity) or {})
+            notify("Saved wheel tuning cleared. Respawn the vehicle to fully restore stock wheels.")
+        end
+
         CloseNUI()
         return
     end
@@ -548,11 +654,34 @@ RegisterNetEvent('ug_wheel_tuning:applyOnSpawn', function(netId, data)
     if not veh or veh == 0 then veh = NetToEnt(netId) end
     if not veh or veh == 0 then return end
 
+    cacheStockWheelData(veh, GetVehicleNumberPlateText(veh))
     ApplyWheelsClientside(data, veh, nil)
+end)
+
+RegisterNetEvent('ug_wheel_tuning:clearActiveVehicle', function(netId, plate)
+    local veh = netId and NetToVeh(netId) or 0
+    if veh == 0 and netId then
+        veh = NetToEnt(netId)
+    end
+
+    plate = trimPlate(plate or (veh ~= 0 and GetVehicleNumberPlateText(veh) or nil))
+    if veh and veh ~= 0 and DoesEntityExist(veh) then
+        local stock = plate and stockWheelDataByPlate[plate] or nil
+        if stock then
+            ApplyWheelsClientside(stock, veh, stock)
+        end
+        clearFitmentDecorators(veh)
+    end
 end)
 
 exports('IsInWheelZone', function()
     return inZone, currentZoneId, currentZoneCfg
+end)
+
+exports('OpenWheelMenu', function(ignoreZone)
+    if isMenuOpen then return false end
+    OpenTuning(ignoreZone == true)
+    return isMenuOpen
 end)
 
 AddEventHandler('onResourceStop', function(res)

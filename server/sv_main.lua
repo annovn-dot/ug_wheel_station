@@ -37,6 +37,39 @@ local function debugPrint(...)
     end
 end
 
+local function isAdminAllowed(src)
+    if src == 0 then return true end
+
+    if Config.AdminAce and IsPlayerAceAllowed(src, Config.AdminAce) then
+        return true
+    end
+
+    local player = Framework.GetPlayer(src)
+    if not player then return false end
+
+    local allowedGroups = Config.AdminGroups
+    if type(allowedGroups) ~= 'table' or not next(allowedGroups) then
+        return false
+    end
+
+    local group
+    if framework == 'esx' then
+        group = player.getGroup and player.getGroup() or player.group
+    elseif framework == 'qb' or framework == 'qbox' then
+        group = player.PlayerData and player.PlayerData.group
+    end
+
+    if not group then return false end
+
+    for _, allowed in ipairs(allowedGroups) do
+        if allowed == group then
+            return true
+        end
+    end
+
+    return false
+end
+
 lib.callback.register('ug_wheel_tuning:canUseZone', function(source, zoneId)
     local player = Framework.GetPlayer(source)
     if not player then
@@ -223,3 +256,46 @@ lib.callback.register('ug_wheel_tuning:getActivePool', function(_source)
     end
     return copy
 end)
+
+lib.callback.register('ug_wheel_tuning:resetWheels', function(source, plate, netId)
+    plate = trimPlate(plate)
+    if not plate or plate == '' then
+        return false, 'Vehicle plate not found.'
+    end
+
+    local player = Framework.GetPlayer(source)
+    if not player then
+        return false, 'Player not found.'
+    end
+
+    local identifier = Framework.GetIdentifier(player)
+    if not identifier then
+        return false, 'Identifier not found.'
+    end
+
+    local tableName, ownerCol, plateCol, wheelsCol = getVehicleTableInfo()
+    if not tableName or not ownerCol or not plateCol or not wheelsCol then
+        return false, 'Wheel tuning storage is not configured.'
+    end
+
+    MySQL.update.await(([[UPDATE `%s` SET `%s` = NULL WHERE `%s` = ? AND `%s` = ?]]):format(
+        tableName, wheelsCol, ownerCol, plateCol
+    ), { identifier, plate })
+
+    ActiveFitment[plate] = nil
+    TriggerClientEvent('ug_wheel_tuning:clearActiveVehicle', -1, netId, plate)
+
+    return true, nil
+end)
+
+RegisterCommand(Config.AdminOpenCommand or 'wstationadmin', function(source)
+    if not isAdminAllowed(source) then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'You are not allowed to use the admin wheel station command.'
+        })
+        return
+    end
+
+    TriggerClientEvent('ug_wheel_tuning:openAdminMenu', source)
+end, false)

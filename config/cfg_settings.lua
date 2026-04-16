@@ -4,6 +4,9 @@ Config.Framework          = 'esx' -- 'esx', 'qb', 'qbox'
 Config.Debug              = false
 
 Config.OpenCommand        = 'wstation'
+Config.AdminOpenCommand   = 'wstationadmin'
+Config.AdminAce           = 'group.admin'
+Config.AdminGroups        = { 'admin', 'superadmin' }
 Config.FitmentTick        = 2
 Config.FitmentScanTimer   = 2000
 Config.FitmentCheckRadius = 30.0
@@ -30,12 +33,12 @@ Config.WheelsColumn       = 'wheels' -- JSON column to store wheel data
 
 Config.DiscordLogs        = {
     Enabled        = true,
-    Webhook        = "",
+    Webhook        =
+    "",
 
     Username       = "ug_wheel_tuning",
     Avatar         = "",
 
     ColorSave      = 3447003, -- blue
-    IncludeRawJson = false, -- set true if you want JSON payload in message (can be long)
+    IncludeRawJson = false,   -- set true if you want JSON payload in message (can be long)
 }
-
